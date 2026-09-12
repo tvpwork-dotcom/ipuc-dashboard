@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="ipuc-vibrant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client https://cdn.jsdelivr.net https://cdn.sheetjs.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://accounts.google.com/gsi/style; font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https://*.googleusercontent.com https://*.gstatic.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://accounts.google.com/gsi/ https://cdn.jsdelivr.net https://cdn.sheetjs.com; frame-src https://accounts.google.com/gsi/; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="description" content="Dashboard วิเคราะห์ผลงานบริการผู้ป่วยในสิทธิ UC โรงพยาบาลแม่สะเรียง">
+  <meta name="theme-color" content="#0F2747">
+  <title>IP.UC Performance Analytics Dashboard | โรงพยาบาลแม่สะเรียง</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231976D2'/%3E%3Cstop offset='1' stop-color='%2300A6C8'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Crect x='14' y='34' width='8' height='16' rx='2' fill='%23fff'/%3E%3Crect x='28' y='24' width='8' height='26' rx='2' fill='%23fff'/%3E%3Crect x='42' y='14' width='8' height='36' rx='2' fill='%23fff'/%3E%3C/svg%3E">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="css/style.css">
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" defer></script>
+  <script src="js/config.js" defer></script>
+  <script src="js/utils.js" defer></script>
+  <script src="js/api.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/demo-data.js" defer></script>
+  <script src="js/dashboard.js" defer></script>
+  <script src="js/import.js" defer></script>
+  <script src="js/data-manager.js" defer></script>
+  <script src="js/users.js" defer></script>
+  <script src="js/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">ข้ามไปยังเนื้อหาหลัก</a>
+
+  <!-- ============================== Navbar ============================== -->
+  <header class="site-nav">
+    <div class="container nav-inner">
+      <a class="brand" href="#/dashboard">
+        <span class="brand-mark" aria-hidden="true"><i class="bi bi-hospital"></i></span>
+        <span class="brand-text">
+          <strong>IP.UC Analytics</strong>
+          <small data-org-name>โรงพยาบาลแม่สะเรียง</small>
+        </span>
+      </a>
+
+      <nav class="nav-menu" id="nav-menu" aria-label="เมนูหลัก">
+        <a class="nav-link" href="#/dashboard" data-nav="dashboard"><i class="bi bi-speedometer2" aria-hidden="true"></i> Dashboard</a>
+        <a class="nav-link" href="#/import" data-nav="import" data-min-role="EDITOR" hidden><i class="bi bi-cloud-arrow-up" aria-hidden="true"></i> นำเข้าข้อมูล</a>
+        <a class="nav-link" href="#/data" data-nav="data" data-min-role="EDITOR" hidden><i class="bi bi-table" aria-hidden="true"></i> จัดการข้อมูล</a>
+        <a class="nav-link" href="#/admin/users" data-nav="admin" data-min-role="ADMIN" hidden><i class="bi bi-shield-lock" aria-hidden="true"></i> ผู้ดูแลระบบ</a>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="auth-area"></div>
+        <button type="button" class="btn btn-ghost btn-icon nav-toggle" id="nav-toggle" aria-controls="nav-menu" aria-expanded="false" aria-label="เปิดเมนูหลัก">
+          <i class="bi bi-list" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1">
+
+    <!-- ============================== Dashboard ============================== -->
+    <section id="view-dashboard" class="view" aria-labelledby="dash-title">
+      <div class="hero">
+        <div class="container">
+          <span class="eyebrow"><i class="bi bi-activity" aria-hidden="true"></i> ศูนย์รายได้ · ผู้ป่วยใน สิทธิ UC</span>
+          <h1 id="dash-title">IP.UC Performance Analytics Dashboard</h1>
+          <p class="hero-sub">ผลงานบริการผู้ป่วยในสิทธิ UC <span data-org-name>โรงพยาบาลแม่สะเรียง</span> — ติดตามจำนวนบริการ Adj.RW และค่าชดเชยตามปีงบประมาณ เดือน และงวด STM</p>
+          <div class="hero-meta">
+            <span class="meta-chip"><i class="bi bi-clock-history" aria-hidden="true"></i> ปรับปรุงข้อมูลล่าสุด <strong id="dash-updated">กำลังโหลดข้อมูล...</strong></span>
+            <span class="meta-chip"><i class="bi bi-database" aria-hidden="true"></i> <strong id="dash-records">–</strong> รายการ</span>
+            <span class="meta-chip"><i class="bi bi-calendar3" aria-hidden="true"></i> <strong id="dash-period">–</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="container dash-body">
+        <div id="demo-banner" class="alert alert-warning mb-4" role="note" hidden>
+          <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+          <div><strong>โหมดข้อมูลตัวอย่าง</strong> — ตัวเลขทั้งหมดในหน้านี้เป็นข้อมูลจำลองเพื่อแสดงรูปแบบ Dashboard เท่านั้น ไม่ใช่ผลงานจริง
+            กรุณาตั้งค่า <code>GAS_API_URL</code> และ <code>GOOGLE_CLIENT_ID</code> ในไฟล์ <code>js/config.js</code> ตามคู่มือ README</div>
+        </div>
+
+        <div id="dash-state" hidden></div>
+
+        <div id="dash-content">
+          <!-- ตัวกรอง -->
+          <section class="card filter-card" aria-labelledby="filter-title">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title" id="filter-title"><i class="bi bi-funnel-fill" aria-hidden="true"></i> ตัวกรองข้อมูล</h2>
+                <div class="filter-summary" id="filter-summary" aria-live="polite"></div>
+              </div>
+              <div class="head-actions">
+                <button type="button" class="btn btn-outline btn-sm filter-toggle" id="filter-toggle" aria-expanded="false" aria-controls="filter-body"><i class="bi bi-sliders" aria-hidden="true"></i> ตัวกรอง</button>
+                <button type="button" class="btn btn-ghost btn-sm" id="btn-clear-filters"><i class="bi bi-x-circle" aria-hidden="true"></i> ล้างตัวกรอง</button>
+                <button type="button" class="btn btn-outline btn-sm no-print" id="btn-print"><i class="bi bi-printer" aria-hidden="true"></i> พิมพ์</button>
+              </div>
+            </div>
+
+            <div class="filter-body" id="filter-body">
+              <div class="filter-grid">
+                <div class="form-group">
+                  <span class="form-label" id="lbl-f-years">ปีงบประมาณ</span>
+                  <div id="f-years"></div>
+                  <p class="form-hint" id="f-years-hint" hidden>ขณะนี้ใช้ “ปีงบประมาณหลัก” ในโหมดเปรียบเทียบ</p>
+                </div>
+                <div class="form-group">
+                  <span class="form-label" id="lbl-f-months">เดือน</span>
+                  <div id="f-months"></div>
+                </div>
+                <div class="form-group">
+                  <span class="form-label" id="lbl-f-stms">งวด STM</span>
+                  <div id="f-stms"></div>
+                </div>
+                <div class="form-group">
+                  <span class="form-label" id="lbl-f-types">ประเภทบริการ</span>
+                  <div id="f-types"></div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="f-from">ช่วงเวลาเริ่มต้น</label>
+                  <select id="f-from" class="form-control"></select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="f-to">ช่วงเวลาสิ้นสุด</label>
+                  <select id="f-to" class="form-control"></select>
+                </div>
+              </div>
+
+              <div class="filter-compare">
+                <p class="filter-compare-title"><i class="bi bi-arrow-left-right" aria-hidden="true"></i> โหมดเปรียบเทียบ</p>
+                <div class="filter-grid">
+                  <div class="form-group">
+                    <label class="form-label" for="f-primary">ปีงบประมาณหลัก</label>
+                    <select id="f-primary" class="form-control"></select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="f-compare">เปรียบเทียบกับปีงบประมาณ</label>
+                    <select id="f-compare" class="form-control"></select>
+                  </div>
+                </div>
+                <div class="filter-foot">
+                  <label class="check"><input type="checkbox" id="f-align" checked> เปรียบเทียบเฉพาะเดือนที่มีข้อมูลตรงกับปีหลัก</label>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- KPI -->
+          <section class="section" aria-labelledby="kpi-title">
+            <div class="section-head">
+              <h2 id="kpi-title">ตัวชี้วัดสำคัญ</h2>
+              <p class="section-sub" id="kpi-caption"></p>
+            </div>
+            <div class="kpi-grid" id="kpi-grid"></div>
+          </section>
+
+          <!-- Insight -->
+          <section class="section" aria-labelledby="insight-title">
+            <div class="card">
+              <div class="card-head">
+                <h2 class="card-title" id="insight-title"><i class="bi bi-lightbulb-fill" aria-hidden="true"></i> ข้อมูลที่น่าสนใจ</h2>
+                <span class="badge badge-violet"><i class="bi bi-stars" aria-hidden="true"></i> สรุปอัตโนมัติจากตัวกรองปัจจุบัน</span>
+              </div>
+              <ul class="insight-list" id="insight-list"></ul>
+            </div>
+          </section>
+
+          <!-- Charts -->
+          <section class="section" aria-labelledby="charts-title">
+            <div class="section-head">
+              <h2 id="charts-title">กราฟวิเคราะห์</h2>
+              <p class="section-sub">ทุกกราฟเปลี่ยนตามตัวกรอง · วางเมาส์หรือแตะที่กราฟเพื่อดูรายละเอียด</p>
+            </div>
+
+            <div class="grid-12">
+              <article class="card chart-card col-8" aria-labelledby="ct-trend">
+                <div class="card-head">
+                  <div>
+                    <h3 class="card-title" id="ct-trend"><i class="bi bi-graph-up" aria-hidden="true"></i> แนวโน้มรายเดือน</h3>
+                    <p class="card-sub">จำนวนบริการ (ครั้ง) และ Adj.RW แกนซ้าย · ค่าชดเชย (บาท) แกนขวา</p>
+                  </div>
+                  <div class="chip-group" id="trend-metrics" role="group" aria-label="เลือกตัวชี้วัดที่แสดงในกราฟแนวโน้ม">
+                    <button type="button" class="chip" data-metric="service_count" aria-pressed="true" style="--chip-color: var(--chart-1)"><span class="dot" aria-hidden="true"></span>จำนวนบริการ</button>
+                    <button type="button" class="chip" data-metric="adj_rw" aria-pressed="true" style="--chip-color: var(--chart-3)"><span class="dot" aria-hidden="true"></span>Adj.RW</button>
+                    <button type="button" class="chip" data-metric="compensation" aria-pressed="true" style="--chip-color: var(--chart-2)"><span class="dot" aria-hidden="true"></span>ค่าชดเชย</button>
+                  </div>
+                </div>
+                <div class="chart-box h-360"><canvas id="chart-trend" role="img" aria-label="กราฟเส้นแนวโน้มรายเดือนของจำนวนบริการ Adj.RW และค่าชดเชย"></canvas></div>
+              </article>
+
+              <article class="card chart-card col-4" aria-labelledby="ct-donut">
+                <div class="card-head">
+                  <div>
+                    <h3 class="card-title" id="ct-donut"><i class="bi bi-pie-chart-fill" aria-hidden="true"></i> สัดส่วนค่าชดเชย</h3>
+                    <p class="card-sub">แยกตามประเภทบริการ (บาท)</p>
+                  </div>
+                </div>
+                <div class="chart-box h-360"><canvas id="chart-donut" role="img" aria-label="กราฟโดนัทสัดส่วนค่าชดเชยตามประเภทบริการ"></canvas></div>
+              </article>
+
+              <article class="card chart-card col-6" aria-labelledby="ct-compare">
+                <div class="card-head">
+                  <div>
+                    <h3 class="card-title" id="ct-compare"><i class="bi bi-bar-chart-fill" aria-hidden="true"></i> เปรียบเทียบปีงบประมาณ</h3>
+                    <p class="card-sub" id="compare-sub">รายเดือนตามลำดับปีงบประมาณ (ต.ค.–ก.ย.)</p>
+                  </div>
+                  <div class="chart-tools">
+                    <label class="sr-only" for="compare-metric">ตัวชี้วัดที่เปรียบเทียบ</label>
+                    <select id="compare-metric" class="form-control">
+                      <option value="compensation">ค่าชดเชย (บาท)</option>
+                      <option value="service_count">จำนวนบริการ (ครั้ง)</option>
+                      <option value="adj_rw">Adj.RW</option>
+                      <option value="cmi">CMI</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="chart-box"><canvas id="chart-compare" role="img" aria-label="กราฟแท่งกลุ่มเปรียบเทียบปีงบประมาณรายเดือน"></canvas></div>
+                <div class="compare-summary" id="compare-summary"></div>
+              </article>
+
+              <article class="card chart-card col-6" aria-labelledby="ct-top">
+                <div class="card-head">
+                  <div>
+                    <h3 class="card-title" id="ct-top"><i class="bi bi-trophy-fill" aria-hidden="true"></i> Top ประเภทบริการ</h3>
+                    <p class="card-sub">เรียงตามค่าชดเชย (บาท)</p>
+                  </div>
+                  <div class="segmented" id="top-n" role="group" aria-label="จำนวนประเภทบริการที่แสดง">
+                    <button type="button" data-top="5" aria-pressed="true">Top 5</button>
+                    <button type="button" data-top="10" aria-pressed="false">Top 10</button>
+                    <button type="button" data-top="all" aria-pressed="false">ทั้งหมด</button>
+                  </div>
+                </div>
+                <div class="chart-box"><canvas id="chart-top" role="img" aria-label="กราฟแท่งแนวนอนประเภทบริการที่ได้รับค่าชดเชยสูงสุด"></canvas></div>
+              </article>
+
+              <article class="card chart-card col-12" aria-labelledby="ct-stacked">
+                <div class="card-head">
+                  <div>
+                    <h3 class="card-title" id="ct-stacked"><i class="bi bi-bar-chart-steps" aria-hidden="true"></i> ค่าชดเชยแยกตามประเภทบริการในแต่ละเดือน</h3>
+                    <p class="card-sub">กราฟแท่งซ้อน หน่วย: บาท</p>
+                  </div>
+                </div>
+                <div class="chart-box h-400"><canvas id="chart-stacked" role="img" aria-label="กราฟแท่งซ้อนค่าชดเชยรายเดือนแยกตามประเภทบริการ"></canvas></div>
+              </article>
+
+              <article class="card chart-card col-12" aria-labelledby="ct-scatter">
+                <div class="card-head">
+                  <div>
+                    <h3 class="card-title" id="ct-scatter"><i class="bi bi-diagram-3-fill" aria-hidden="true"></i> ความสัมพันธ์จำนวนบริการกับ Adj.RW</h3>
+                    <p class="card-sub">แต่ละจุด = ประเภทบริการในแต่ละเดือน · ขนาดจุดแสดงค่าชดเชย</p>
+                  </div>
+                  <div class="segmented" id="scatter-scale" role="group" aria-label="รูปแบบสเกลแกน">
+                    <button type="button" data-scale="linear" aria-pressed="true">เชิงเส้น</button>
+                    <button type="button" data-scale="log" aria-pressed="false">ลอการิทึม</button>
+                  </div>
+                </div>
+                <div class="chart-box h-400"><canvas id="chart-scatter" role="img" aria-label="กราฟกระจายความสัมพันธ์ระหว่างจำนวนบริการและ Adj.RW ขนาดจุดตามค่าชดเชย"></canvas></div>
+              </article>
+            </div>
+          </section>
+
+          <!-- Table -->
+          <section class="section" aria-labelledby="table-title">
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <h2 class="card-title" id="table-title"><i class="bi bi-grid-3x3-gap-fill" aria-hidden="true"></i> ตารางวิเคราะห์ตามประเภทบริการ</h2>
+                  <p class="card-sub" id="table-sub">สรุปตามตัวกรองปัจจุบัน · หน่วยเงิน: บาท</p>
+                </div>
+              </div>
+              <div id="summary-table"></div>
+            </div>
+          </section>
+
+          <!-- Notes -->
+          <section class="section" aria-labelledby="note-title">
+            <div class="card note-card">
+              <h2 class="card-title" id="note-title"><i class="bi bi-info-circle-fill" aria-hidden="true"></i> หมายเหตุและแหล่งข้อมูล</h2>
+              <p class="card-sub" id="data-note">ข้อมูลจากรายงาน Statement (STM) ผู้ป่วยในสิทธิ UC ของ สปสช.</p>
+              <ul class="note-list">
+                <li><strong>CMI</strong> = Adj.RW รวม ÷ จำนวนบริการรวม</li>
+                <li><strong>รายได้เฉลี่ยต่อครั้ง</strong> = ค่าชดเชยก่อนหักเงินเดือน ÷ จำนวนบริการ · <strong>รายได้เฉลี่ยต่อ Adj.RW</strong> = ค่าชดเชย ÷ Adj.RW</li>
+                <li><strong>ปีงบประมาณ</strong> เริ่ม 1 ต.ค. ถึง 30 ก.ย. ของปีถัดไป · รหัสเดือนรูปแบบ YYMM (พ.ศ.) เช่น 6907 = ก.ค. 2569</li>
+                <li>Dashboard แสดงเฉพาะข้อมูลสรุประดับประเภทบริการ (Aggregated) ไม่มีข้อมูลรายบุคคลของผู้ป่วย</li>
+                <li>เครื่องหมาย “-” หมายถึงไม่มีข้อมูล · “N/A” หมายถึงไม่สามารถคำนวณได้</li>
+              </ul>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== Guard ============================== -->
+    <section id="view-guard" class="view" aria-labelledby="guard-title" hidden>
+      <div class="page-header">
+        <div class="container">
+          <span class="eyebrow"><i class="bi bi-shield-lock" aria-hidden="true"></i> ตรวจสอบสิทธิ์การใช้งาน</span>
+          <h1 id="guard-title">ต้องเข้าสู่ระบบ</h1>
+          <p class="hero-sub" id="guard-sub">หน้านี้สำหรับผู้ใช้ที่ได้รับอนุญาตเท่านั้น</p>
+        </div>
+      </div>
+      <div class="container page-body">
+        <div class="card" id="guard-content"></div>
+      </div>
+    </section>
+
+    <!-- ============================== Import ============================== -->
+    <section id="view-import" class="view" aria-labelledby="import-title" hidden>
+      <div class="page-header">
+        <div class="container">
+          <span class="eyebrow"><i class="bi bi-cloud-arrow-up" aria-hidden="true"></i> สำหรับ EDITOR · ADMIN · SUPER_ADMIN</span>
+          <h1 id="import-title">นำเข้าข้อมูล STM ผู้ป่วยใน</h1>
+          <p class="hero-sub">รองรับไฟล์ .xlsx .xls และ .csv — ตรวจสอบ Header ชนิดข้อมูล และข้อมูลซ้ำ ทั้งที่เบราว์เซอร์และที่เซิร์ฟเวอร์ก่อนบันทึก</p>
+          <div class="page-actions">
+            <a class="btn btn-light btn-sm" href="samples/ip_uc_import_template.xlsx" download><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> ไฟล์ตัวอย่าง Excel</a>
+            <a class="btn btn-light btn-sm" href="samples/ip_uc_import_template.csv" download><i class="bi bi-filetype-csv" aria-hidden="true"></i> ไฟล์ตัวอย่าง CSV</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="container page-body">
+        <ol class="stepper" id="import-stepper" aria-label="ขั้นตอนการนำเข้าข้อมูล">
+          <li class="step is-active" data-step="1"><span class="num">1</span> เลือกไฟล์</li>
+          <li class="step" data-step="2"><span class="num">2</span> ตรวจสอบข้อมูล</li>
+          <li class="step" data-step="3"><span class="num">3</span> เลือกโหมดและยืนยัน</li>
+          <li class="step" data-step="4"><span class="num">4</span> สรุปผล</li>
+        </ol>
+
+        <section class="card" id="imp-file-card" aria-labelledby="imp-file-title">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title" id="imp-file-title"><i class="bi bi-1-circle-fill" aria-hidden="true"></i> เลือกไฟล์</h2>
+              <p class="card-sub">หัวตารางที่จำเป็น: งวด STM · เดือน · ปีงบประมาณ · ประเภทบริการ · BR หลังหักเงินกัน สป.สธ. · BR คูณ K สป.สธ. · ครั้ง(บริการ) · Adj.RW ที่ชดเชย · ชดเชยก่อนหักเงินเดือน</p>
+            </div>
+          </div>
+          <label class="dropzone" id="imp-dropzone" for="imp-file">
+            <i class="bi bi-file-earmark-arrow-up" aria-hidden="true"></i>
+            <strong>ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</strong>
+            <span>.xlsx · .xls · .csv (ไม่เกิน 10 MB)</span>
+            <input type="file" id="imp-file" class="sr-only" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv">
+          </label>
+          <div class="file-info" id="imp-file-info" hidden></div>
+        </section>
+
+        <section class="card" id="imp-check-card" aria-labelledby="imp-check-title" hidden>
+          <div class="card-head">
+            <div>
+              <h2 class="card-title" id="imp-check-title"><i class="bi bi-2-circle-fill" aria-hidden="true"></i> ตรวจสอบ Header และข้อมูล</h2>
+              <p class="card-sub" id="imp-check-sub"></p>
+            </div>
+            <div class="form-group" id="imp-sheet-wrap" hidden>
+              <label class="form-label" for="imp-sheet">ชีตที่ใช้นำเข้า</label>
+              <select id="imp-sheet" class="form-control"></select>
+            </div>
+          </div>
+          <div id="imp-headers"></div>
+          <div class="stat-grid" id="imp-stats"></div>
+          <div class="tabs" role="tablist" aria-label="ผลการตรวจสอบข้อมูล">
+            <button type="button" class="tab" role="tab" id="imp-tabbtn-preview" aria-controls="imp-tab-preview" aria-selected="true" data-imp-tab="preview"><i class="bi bi-eye" aria-hidden="true"></i> ตัวอย่างข้อมูล</button>
+            <button type="button" class="tab" role="tab" id="imp-tabbtn-errors" aria-controls="imp-tab-errors" aria-selected="false" data-imp-tab="errors" tabindex="-1"><i class="bi bi-x-octagon" aria-hidden="true"></i> ข้อผิดพลาด <span class="badge badge-danger" id="imp-err-count">0</span></button>
+            <button type="button" class="tab" role="tab" id="imp-tabbtn-warnings" aria-controls="imp-tab-warnings" aria-selected="false" data-imp-tab="warnings" tabindex="-1"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> คำเตือน <span class="badge badge-warning" id="imp-warn-count">0</span></button>
+          </div>
+          <div role="tabpanel" id="imp-tab-preview" aria-labelledby="imp-tabbtn-preview"><div id="imp-preview-table"></div></div>
+          <div role="tabpanel" id="imp-tab-errors" aria-labelledby="imp-tabbtn-errors" hidden><div id="imp-error-table"></div></div>
+          <div role="tabpanel" id="imp-tab-warnings" aria-labelledby="imp-tabbtn-warnings" hidden><div id="imp-warning-table"></div></div>
+        </section>
+
+        <section class="card" id="imp-mode-card" aria-labelledby="imp-mode-title" hidden>
+          <div class="card-head">
+            <div>
+              <h2 class="card-title" id="imp-mode-title"><i class="bi bi-3-circle-fill" aria-hidden="true"></i> เลือกโหมดนำเข้าและยืนยัน</h2>
+              <p class="card-sub">คีย์ตรวจสอบข้อมูลซ้ำ = งวด STM + ประเภทบริการ</p>
+            </div>
+          </div>
+          <fieldset class="radio-cards">
+            <legend class="sr-only">โหมดนำเข้า</legend>
+            <label class="radio-card">
+              <input type="radio" name="imp-mode" value="append">
+              <span><strong><i class="bi bi-plus-circle-fill" aria-hidden="true"></i> Append</strong>
+                <small>เพิ่มเฉพาะข้อมูลใหม่ แถวที่คีย์ซ้ำกับข้อมูลในระบบจะไม่ถูกนำเข้า และแสดงเป็นข้อผิดพลาด</small></span>
+            </label>
+            <label class="radio-card">
+              <input type="radio" name="imp-mode" value="upsert" checked>
+              <span><strong><i class="bi bi-arrow-repeat" aria-hidden="true"></i> Upsert</strong>
+                <small>เพิ่มข้อมูลใหม่ และอัปเดตข้อมูลที่คีย์ซ้ำด้วยค่าจากไฟล์ (บันทึกค่าเดิมใน Audit Logs)</small></span>
+            </label>
+            <label class="radio-card danger">
+              <input type="radio" name="imp-mode" value="replace">
+              <span><strong><i class="bi bi-arrow-left-right" aria-hidden="true"></i> Replace Batch</strong>
+                <small>ปิดใช้งาน (Soft Delete) ข้อมูลเดิมทั้งหมดของงวด STM ที่เลือก แล้วนำเข้าข้อมูลจากไฟล์แทน ต้องยืนยันซ้ำ</small></span>
+            </label>
+          </fieldset>
+
+          <div class="replace-box" id="imp-replace-wrap" hidden>
+            <p class="form-label">เลือกงวด STM ที่ต้องการแทนที่</p>
+            <div class="check-grid" id="imp-replace-periods"></div>
+            <div class="alert alert-danger mt-4">
+              <i class="bi bi-exclamation-octagon-fill" aria-hidden="true"></i>
+              <div>ข้อมูลเดิม <strong>ทั้งหมด</strong> ของงวดที่เลือกจะถูกปิดใช้งาน แม้ประเภทบริการนั้นจะไม่มีในไฟล์ แถวในไฟล์ที่เป็นงวดอื่นจะไม่ถูกนำเข้า</div>
+            </div>
+          </div>
+
+          <div class="mt-4" id="imp-ack-wrap" hidden>
+            <label class="check"><input type="checkbox" id="imp-ack"> <span id="imp-ack-text"></span></label>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-ghost" id="imp-reset"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> เลือกไฟล์ใหม่</button>
+            <button type="button" class="btn btn-outline" id="imp-dryrun"><i class="bi bi-clipboard-check" aria-hidden="true"></i> ตรวจสอบกับฐานข้อมูล (ยังไม่บันทึก)</button>
+            <button type="button" class="btn btn-secondary" id="imp-submit"><i class="bi bi-cloud-upload-fill" aria-hidden="true"></i> ยืนยันการนำเข้า</button>
+          </div>
+        </section>
+
+        <section class="card" id="imp-result-card" aria-labelledby="imp-result-title" tabindex="-1" hidden>
+          <div class="card-head">
+            <div>
+              <h2 class="card-title" id="imp-result-title"><i class="bi bi-4-circle-fill" aria-hidden="true"></i> สรุปผลการนำเข้า</h2>
+              <p class="card-sub" id="imp-result-sub"></p>
+            </div>
+            <span id="imp-result-badge"></span>
+          </div>
+          <div id="imp-result-alert"></div>
+          <div class="stat-grid" id="imp-result-stats"></div>
+          <div id="imp-result-table"></div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-outline" id="imp-new"><i class="bi bi-file-earmark-plus" aria-hidden="true"></i> นำเข้าไฟล์ใหม่</button>
+            <a class="btn btn-secondary" href="#/dashboard"><i class="bi bi-speedometer2" aria-hidden="true"></i> ไปที่ Dashboard</a>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ============================== Data manager ============================== -->
+    <section id="view-data" class="view" aria-labelledby="data-title" hidden>
+      <div class="page-header">
+        <div class="container">
+          <span class="eyebrow"><i class="bi bi-table" aria-hidden="true"></i> สำหรับ EDITOR · ADMIN · SUPER_ADMIN</span>
+          <h1 id="data-title">จัดการข้อมูล IP.UC</h1>
+          <p class="hero-sub">เพิ่ม แก้ไข และลบข้อมูลรายงวด STM — ทุกการเปลี่ยนแปลงถูกบันทึกใน Audit Logs และการลบเป็น Soft Delete</p>
+        </div>
+      </div>
+      <div class="container page-body">
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title"><i class="bi bi-database-fill" aria-hidden="true"></i> รายการข้อมูล</h2>
+              <p class="card-sub" id="dm-sub">กำลังโหลดข้อมูล...</p>
+            </div>
+            <div class="head-actions">
+              <button type="button" class="btn btn-outline btn-sm" id="dm-refresh"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> โหลดใหม่</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="dm-add"><i class="bi bi-plus-lg" aria-hidden="true"></i> เพิ่มข้อมูล</button>
+            </div>
+          </div>
+          <div class="inline-filters">
+            <div class="form-group">
+              <label class="form-label" for="dm-year">ปีงบประมาณ</label>
+              <select id="dm-year" class="form-control"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="dm-stm">งวด STM</label>
+              <select id="dm-stm" class="form-control"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="dm-type">ประเภทบริการ</label>
+              <select id="dm-type" class="form-control"></select>
+            </div>
+            <label class="check" id="dm-inactive-wrap" hidden><input type="checkbox" id="dm-inactive"> แสดงข้อมูลที่ถูกลบ (Soft Delete)</label>
+          </div>
+          <div id="dm-table"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== Admin ============================== -->
+    <section id="view-admin" class="view" aria-labelledby="admin-title" hidden>
+      <div class="page-header">
+        <div class="container">
+          <span class="eyebrow"><i class="bi bi-shield-lock" aria-hidden="true"></i> สำหรับ ADMIN · SUPER_ADMIN</span>
+          <h1 id="admin-title">ผู้ดูแลระบบ</h1>
+          <p class="hero-sub">จัดการผู้ใช้และสิทธิ์ ตรวจสอบประวัติการนำเข้า Audit Logs และตั้งค่าระบบ</p>
+        </div>
+      </div>
+      <div class="container page-body">
+        <div class="card">
+          <nav class="tabs" aria-label="เมนูผู้ดูแลระบบ">
+            <a class="tab" href="#/admin/users" data-admin-tab="users"><i class="bi bi-people-fill" aria-hidden="true"></i> จัดการผู้ใช้ <span class="badge badge-warning" id="adm-pending-badge" hidden></span></a>
+            <a class="tab" href="#/admin/import-logs" data-admin-tab="import-logs"><i class="bi bi-journal-arrow-up" aria-hidden="true"></i> Import Logs</a>
+            <a class="tab" href="#/admin/audit-logs" data-admin-tab="audit-logs"><i class="bi bi-journal-text" aria-hidden="true"></i> Audit Logs</a>
+            <a class="tab" href="#/admin/settings" data-admin-tab="settings"><i class="bi bi-gear-fill" aria-hidden="true"></i> Settings</a>
+          </nav>
+          <div data-admin-panel="users" hidden></div>
+          <div data-admin-panel="import-logs" hidden></div>
+          <div data-admin-panel="audit-logs" hidden></div>
+          <div data-admin-panel="settings" hidden></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============================== Footer ============================== -->
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <span class="brand-mark sm" aria-hidden="true"><i class="bi bi-hospital"></i></span>
+        <div>
+          <strong>IP.UC Performance Analytics Dashboard</strong>
+          <p>ผลงานบริการผู้ป่วยในสิทธิ UC <span data-org-name>โรงพยาบาลแม่สะเรียง</span></p>
+        </div>
+      </div>
+      <div class="footer-meta">
+        <p class="dev">พัฒนาโดย ศูนย์รายได้ โรงพยาบาลแม่สะเรียง</p>
+        <p>เวอร์ชัน <span id="app-version">1.0.0</span> · © <span id="copyright-year">2569</span> สงวนสิทธิ์การใช้งานภายในหน่วยงาน</p>
+      </div>
+    </div>
+  </footer>
+
+  <div id="toast-region" class="toast-region"></div>
+
+  <!-- ============================== Login template ============================== -->
+  <template id="tpl-login">
+    <div class="auth-box">
+      <div class="segmented segmented-block" role="tablist" aria-label="เลือกการทำรายการ">
+        <button type="button" role="tab" data-auth-tab="login" aria-selected="true"><i class="bi bi-google" aria-hidden="true"></i> เข้าสู่ระบบด้วย Google</button>
+        <button type="button" role="tab" data-auth-tab="register" aria-selected="false"><i class="bi bi-person-plus-fill" aria-hidden="true"></i> สมัครใช้งาน</button>
+      </div>
+
+      <div data-auth-config hidden></div>
+
+      <div data-auth-panel="login">
+        <p class="auth-lead">เข้าสู่ระบบด้วยบัญชี Google ที่ได้รับการอนุมัติแล้ว เพื่อนำเข้าข้อมูล จัดการข้อมูล หรือดูแลระบบ</p>
+        <div class="gis-slot mt-4" data-gis="login"></div>
+        <p class="form-hint auth-hint"><i class="bi bi-shield-check" aria-hidden="true"></i> ระบบยืนยันตัวตนกับ Google ที่เซิร์ฟเวอร์ และไม่เก็บรหัสผ่านของคุณ</p>
+      </div>
+
+      <div data-auth-panel="register" hidden>
+        <p class="auth-lead">กรอกชื่อและนามสกุล แล้วยืนยันตัวตนด้วย Google — อีเมลจะดึงจากบัญชี Google ที่ยืนยันแล้วโดยอัตโนมัติ</p>
+        <form class="form-stack mt-4" data-register-form novalidate>
+          <div class="form-group">
+            <label class="form-label" for="reg-first">ชื่อ <span class="req" aria-hidden="true">*</span></label>
+            <input id="reg-first" name="first_name" class="form-control" maxlength="100" autocomplete="given-name" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="reg-last">นามสกุล <span class="req" aria-hidden="true">*</span></label>
+            <input id="reg-last" name="last_name" class="form-control" maxlength="100" autocomplete="family-name" required>
+          </div>
+        </form>
+        <p class="form-hint mt-4" data-register-hint><i class="bi bi-info-circle" aria-hidden="true"></i> กรอกชื่อและนามสกุลให้ครบ ระบบจะแสดงปุ่มยืนยันตัวตนด้วย Google</p>
+        <div class="gis-slot mt-4" data-gis="register" hidden></div>
+        <p class="form-hint auth-hint">ผู้สมัครใหม่จะได้รับสิทธิ์ VIEWER และต้องรอผู้ดูแลระบบอนุมัติ</p>
+      </div>
+
+      <div class="auth-status" data-auth-status aria-live="polite"></div>
+    </div>
+  </template>
+</body>
+</html>
