@@ -1576,6 +1576,14 @@ select.form-control {
 .footer-meta p { margin: 0; }
 .footer-meta { text-align: left; }
 .footer-meta .dev { color: #fff; font-weight: 500; }
+.site-footer a { color: #fff; text-underline-offset: 3px; }
+.site-footer a:hover { color: var(--color-accent); }
+
+.policy { max-width: 880px; margin-inline: auto; line-height: 1.8; }
+.policy section + section { margin-top: var(--space-6); }
+.policy h2 { font-size: var(--text-xl); font-weight: 600; margin-bottom: var(--space-2); color: var(--color-primary); }
+.policy ul { margin: 0 0 var(--space-3); padding-left: 1.25rem; display: grid; gap: var(--space-2); }
+.policy strong { font-weight: 600; }
 @media (min-width: 768px) { .footer-meta { text-align: right; } }
 
 /* 20. Reduced motion / print --------------------------------------------------- */

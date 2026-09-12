@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="ipuc-vibrant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="description" content="นโยบายความเป็นส่วนตัว IP.UC Performance Analytics Dashboard โรงพยาบาลแม่สะเรียง">
+  <meta name="theme-color" content="#0F2747">
+  <title>นโยบายความเป็นส่วนตัว | IP.UC Performance Analytics Dashboard</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231976D2'/%3E%3Cstop offset='1' stop-color='%2300A6C8'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Crect x='14' y='34' width='8' height='16' rx='2' fill='%23fff'/%3E%3Crect x='28' y='24' width='8' height='26' rx='2' fill='%23fff'/%3E%3Crect x='42' y='14' width='8' height='36' rx='2' fill='%23fff'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">ข้ามไปยังเนื้อหาหลัก</a>
+
+  <header class="site-nav">
+    <div class="container nav-inner">
+      <a class="brand" href="./">
+        <span class="brand-mark" aria-hidden="true"><i class="bi bi-hospital"></i></span>
+        <span class="brand-text">
+          <strong>IP.UC Analytics</strong>
+          <small>โรงพยาบาลแม่สะเรียง</small>
+        </span>
+      </a>
+      <div class="nav-actions">
+        <a class="btn btn-outline btn-sm" href="./"><i class="bi bi-speedometer2" aria-hidden="true"></i> กลับไปที่ Dashboard</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1">
+    <div class="page-header">
+      <div class="container">
+        <span class="eyebrow"><i class="bi bi-shield-check" aria-hidden="true"></i> Privacy Policy</span>
+        <h1>นโยบายความเป็นส่วนตัว</h1>
+        <p class="hero-sub">IP.UC Performance Analytics Dashboard — ระบบวิเคราะห์ผลงานบริการผู้ป่วยในสิทธิ UC โรงพยาบาลแม่สะเรียง</p>
+      </div>
+    </div>
+
+    <div class="container page-body">
+      <article class="card policy">
+        <p class="card-sub">มีผลบังคับใช้ตั้งแต่วันที่ 12 กันยายน 2569 · ผู้รับผิดชอบ: ศูนย์รายได้ โรงพยาบาลแม่สะเรียง</p>
+
+        <section>
+          <h2>1. ขอบเขต</h2>
+          <p>นโยบายนี้อธิบายการเก็บ ใช้ และคุ้มครองข้อมูลส่วนบุคคลของผู้ใช้งานระบบ IP.UC Performance Analytics Dashboard
+            (<span class="nowrap">https://tvpwork-dotcom.github.io/ipuc-dashboard/</span>) ซึ่งเป็นระบบภายในสำหรับติดตามผลงานบริการผู้ป่วยในสิทธิ UC ของโรงพยาบาลแม่สะเรียง</p>
+        </section>
+
+        <section>
+          <h2>2. ข้อมูลที่เก็บ</h2>
+          <ul>
+            <li><strong>ข้อมูลจากบัญชี Google</strong> — อีเมลที่ Google ยืนยันแล้ว เพื่อใช้ยืนยันตัวตนเมื่อเข้าสู่ระบบ ระบบขอเฉพาะสิทธิ์พื้นฐาน (openid, email, profile) และ<strong>ไม่เข้าถึง</strong> Gmail, Google Drive, รายชื่อติดต่อ หรือข้อมูลอื่นในบัญชี Google</li>
+            <li><strong>ข้อมูลที่ผู้ใช้กรอกเมื่อสมัคร</strong> — ชื่อ และนามสกุล</li>
+            <li><strong>ข้อมูลบัญชีในระบบ</strong> — สิทธิ์การใช้งาน สถานะการอนุมัติ วันที่สมัคร วันที่อนุมัติ และวันเวลาเข้าใช้งานล่าสุด</li>
+            <li><strong>บันทึกการใช้งาน (Audit Logs)</strong> — วันเวลา อีเมล เหตุการณ์ที่ทำ (เช่น เข้าสู่ระบบ นำเข้า แก้ไข ลบข้อมูล) ค่าก่อนและหลังการแก้ไข และข้อมูลเบราว์เซอร์ (User Agent)</li>
+            <li><strong>ข้อมูลผลงานบริการ</strong> — ข้อมูลสรุประดับประเภทบริการจากรายงาน STM (จำนวนบริการ Adj.RW และค่าชดเชย) <strong>ไม่มีข้อมูลรายบุคคลของผู้ป่วย</strong> เช่น ชื่อ HN หรือเลขประจำตัวประชาชน</li>
+          </ul>
+          <p>ระบบไม่เก็บรหัสผ่านของผู้ใช้ และไม่ใช้คุกกี้เพื่อการโฆษณาหรือติดตามพฤติกรรม เบราว์เซอร์จะเก็บ Session Token และธีมที่เลือกไว้ใน Local Storage ของเครื่องผู้ใช้เท่านั้น</p>
+        </section>
+
+        <section>
+          <h2>3. วัตถุประสงค์การใช้ข้อมูล</h2>
+          <ul>
+            <li>ยืนยันตัวตน และควบคุมสิทธิ์การเข้าถึงตามบทบาทของผู้ใช้</li>
+            <li>ให้ผู้ดูแลระบบพิจารณาอนุมัติ ระงับ หรือเปลี่ยนสิทธิ์ผู้ใช้</li>
+            <li>ตรวจสอบย้อนหลังการนำเข้าและแก้ไขข้อมูล เพื่อความถูกต้องและความปลอดภัยของระบบ</li>
+            <li>จัดทำรายงานวิเคราะห์ผลงานบริการสำหรับผู้บริหารโรงพยาบาล</li>
+          </ul>
+          <p>การใช้ข้อมูลที่ได้รับจาก Google APIs เป็นไปตาม <a href="https://developers.google.com/terms/api-services-user-data-policy" rel="noopener noreferrer">Google API Services User Data Policy</a> รวมถึงข้อกำหนด Limited Use</p>
+        </section>
+
+        <section>
+          <h2>4. การจัดเก็บและการเปิดเผยข้อมูล</h2>
+          <ul>
+            <li>ข้อมูลจัดเก็บใน Google Sheets และประมวลผลผ่าน Google Apps Script ภายใต้บัญชีที่โรงพยาบาลดูแล การรับส่งข้อมูลเข้ารหัสด้วย HTTPS</li>
+            <li>ผู้ที่เข้าถึงข้อมูลบัญชีผู้ใช้และบันทึกการใช้งานได้ คือผู้ดูแลระบบ (ADMIN / SUPER_ADMIN) ที่ได้รับมอบหมายเท่านั้น</li>
+            <li>ไม่ขาย ไม่ให้เช่า และไม่เปิดเผยข้อมูลส่วนบุคคลแก่บุคคลภายนอก เว้นแต่เป็นไปตามที่กฎหมายกำหนด</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>5. ระยะเวลาการเก็บรักษา</h2>
+          <p>ข้อมูลบัญชีผู้ใช้เก็บไว้ตลอดระยะเวลาที่ยังมีสิทธิ์ใช้งานระบบ บันทึกการใช้งานเก็บไว้ตามความจำเป็นในการตรวจสอบของหน่วยงาน เมื่อพ้นความจำเป็นจะลบหรือย้ายไปเก็บถาวรตามระเบียบของโรงพยาบาล</p>
+        </section>
+
+        <section>
+          <h2>6. สิทธิของผู้ใช้</h2>
+          <p>ผู้ใช้มีสิทธิขอเข้าถึง แก้ไข หรือขอยกเลิกบัญชีและลบข้อมูลส่วนบุคคลของตน ตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 โดยติดต่อศูนย์รายได้ โรงพยาบาลแม่สะเรียง
+            และสามารถถอนสิทธิ์การเข้าถึงบัญชี Google ของระบบนี้ได้ด้วยตนเองที่ <a href="https://myaccount.google.com/connections" rel="noopener noreferrer">การเชื่อมต่อกับแอปและบริการของบัญชี Google</a></p>
+        </section>
+
+        <section>
+          <h2>7. การเปลี่ยนแปลงนโยบาย</h2>
+          <p>หากมีการแก้ไขนโยบายนี้ จะปรับปรุงวันที่มีผลบังคับใช้ไว้ด้านบนของหน้านี้</p>
+        </section>
+
+        <section>
+          <h2>8. ติดต่อ</h2>
+          <p><strong>ศูนย์รายได้ โรงพยาบาลแม่สะเรียง</strong><br>อำเภอแม่สะเรียง จังหวัดแม่ฮ่องสอน</p>
+        </section>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <span class="brand-mark sm" aria-hidden="true"><i class="bi bi-hospital"></i></span>
+        <div>
+          <strong>IP.UC Performance Analytics Dashboard</strong>
+          <p>ผลงานบริการผู้ป่วยในสิทธิ UC โรงพยาบาลแม่สะเรียง</p>
+        </div>
+      </div>
+      <div class="footer-meta">
+        <p class="dev">พัฒนาโดย ศูนย์รายได้ โรงพยาบาลแม่สะเรียง</p>
+        <p><a href="./">Dashboard</a> · <a href="privacy.html">นโยบายความเป็นส่วนตัว</a></p>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
