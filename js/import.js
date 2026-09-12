@@ -48,6 +48,18 @@ const Importer = (() => {
       if (file) handleFile(file);
     });
 
+    $("#imp-file-info").addEventListener("click", (e) => {
+      if (!e.target.closest("[data-imp-remove]")) return;
+      if (state.busy) {
+        U.toast("กำลังนำเข้าข้อมูล กรุณารอให้เสร็จก่อนลบไฟล์", "warning");
+        return;
+      }
+      const name = state.file ? state.file.name : "";
+      reset(false);
+      dropzone.focus();
+      U.toast(name ? `ลบไฟล์ ${name} ออกแล้ว เลือกไฟล์ใหม่ได้` : "ลบไฟล์ออกแล้ว", "info");
+    });
+
     $("#imp-sheet").addEventListener("change", (e) => parseSheet(e.target.value));
 
     const tabs = $$("[data-imp-tab]");
@@ -182,12 +194,14 @@ const Importer = (() => {
       $("#imp-sheet-wrap").hidden = names.length < 2;
 
       setHtml(info, html`<i class="bi bi-file-earmark-check-fill" aria-hidden="true"></i>
-        <div><strong>${file.name}</strong><br><small class="text-muted">${fileSize(file.size)} · ${names.length} ชีต</small></div>`);
+        <div class="file-info-text"><strong>${file.name}</strong><br><small class="text-muted">${fileSize(file.size)} · ${names.length} ชีต</small></div>
+        ${removeFileButton(file.name)}`);
       parseSheet(ranked[0].name);
     } catch (err) {
       console.error(err);
-      setHtml(info, html`<div class="alert alert-danger"><i class="bi bi-x-octagon-fill" aria-hidden="true"></i>
-        <div>ไม่สามารถอ่านไฟล์ได้: ${err.message || String(err)} — กรุณาตรวจสอบว่าไฟล์ไม่ได้ตั้งรหัสผ่านและเป็นรูปแบบที่รองรับ</div></div>`);
+      setHtml(info, html`<div class="alert alert-danger file-info-text"><i class="bi bi-x-octagon-fill" aria-hidden="true"></i>
+        <div>ไม่สามารถอ่านไฟล์ได้: ${err.message || String(err)} — กรุณาตรวจสอบว่าไฟล์ไม่ได้ตั้งรหัสผ่านและเป็นรูปแบบที่รองรับ</div></div>
+        ${removeFileButton(file.name)}`);
     }
   }
 
@@ -496,6 +510,12 @@ const Importer = (() => {
     }
     card.focus({ preventScroll: true });
     card.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function removeFileButton(fileName) {
+    return html`<button type="button" class="btn btn-outline btn-sm btn-remove-file" data-imp-remove
+      aria-label="ลบไฟล์ ${fileName} และเลือกไฟล์ใหม่" ${state.busy ? raw("disabled") : ""}>
+      <i class="bi bi-trash3" aria-hidden="true"></i> ลบไฟล์</button>`;
   }
 
   function reset(scroll = true) {
