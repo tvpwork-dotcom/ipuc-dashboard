@@ -258,9 +258,9 @@ const Importer = (() => {
         const rowNo = startRow + i + 1;
         const v = U.validateRecord(rawValues);
         const errors = v.errors.slice();
-        const key = U.businessKey(v.record.stm_period, v.record.service_type);
+        const key = U.duplicateKey(v.record);
         if (!errors.length) {
-          if (seen.has(key)) errors.push(`ข้อมูลซ้ำในไฟล์กับแถวที่ ${seen.get(key)} (งวด STM + ประเภทบริการ)`);
+          if (seen.has(key)) errors.push(`ข้อมูลซ้ำในไฟล์กับแถวที่ ${seen.get(key)} (ตรงกันทั้ง 7 ฟิลด์: ${U.DUPLICATE_KEY_LABEL})`);
           else seen.set(key, rowNo);
         }
         parsed.rows.push({ rowNo, raw: rawValues, record: v.record, errors, warnings: v.warnings, key });
@@ -499,7 +499,8 @@ const Importer = (() => {
       stat("bi-plus-circle-fill", d.dry_run ? "จะเพิ่มใหม่" : "เพิ่มใหม่", d.rows_inserted, "tone-up")
     ];
     if (d.mode === "replace") cards.push(stat("bi-arrow-left-right", d.dry_run ? "ข้อมูลเดิมที่จะถูกแทนที่" : "ข้อมูลเดิมที่ถูกแทนที่", d.rows_replaced, "tone-3"));
-    else cards.push(stat("bi-arrow-repeat", d.dry_run ? "จะอัปเดต" : "อัปเดต", d.rows_updated, "tone-2"));
+    else cards.push(stat("bi-arrow-repeat", d.dry_run ? "จะอัปเดต (ค่า BR)" : "อัปเดต (ค่า BR)", d.rows_updated, "tone-2"));
+    if (d.mode === "upsert" && d.rows_unchanged) cards.push(stat("bi-check2-all", "ซ้ำและค่าเหมือนเดิม (ข้าม)", d.rows_unchanged, "tone-1"));
     cards.push(stat("bi-x-octagon-fill", "ไม่ผ่าน", d.rows_rejected, "tone-down"));
     cards.push(stat("bi-exclamation-triangle-fill", "คำเตือน", d.warning_count || 0, "tone-4"));
     setHtml($("#imp-result-stats"), cards);

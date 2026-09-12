@@ -2,8 +2,9 @@
  * Import.gs — นำเข้าข้อมูลจากไฟล์ Excel/CSV (Frontend อ่านไฟล์ด้วย SheetJS แล้วส่งแถวมาตรวจสอบซ้ำที่นี่)
  *
  * โหมด
- *   append  — เพิ่มเฉพาะข้อมูลใหม่ แถวที่คีย์ซ้ำกับข้อมูลในระบบจะไม่ผ่าน
- *   upsert  — เพิ่มใหม่ หรืออัปเดตข้อมูลที่คีย์ซ้ำ (stm_period + service_type)
+ * ข้อมูลซ้ำ = 7 ฟิลด์ตรงกัน (ดู duplicateKey_ ใน Data.gs) — BR ไม่นำมาเทียบ
+ *   append  — เพิ่มเฉพาะข้อมูลใหม่ แถวที่ซ้ำกับข้อมูลในระบบจะไม่ผ่าน
+ *   upsert  — เพิ่มใหม่ หรืออัปเดตค่า BR ของแถวที่ซ้ำ (แถวที่ค่าเหมือนเดิมทุกคอลัมน์นับเป็น "ไม่เปลี่ยนแปลง" และไม่เขียนซ้ำ)
  *   replace — Soft delete ข้อมูลเดิมทั้งหมดของงวด STM ที่เลือก แล้วเพิ่มข้อมูลจากไฟล์แทน
  *             (ImportLogs.rows_updated = จำนวนแถวเดิมที่ถูกแทนที่)
  * dry_run = true → ตรวจสอบกับฐานข้อมูลโดยไม่บันทึก
@@ -57,11 +58,11 @@ function handleImportData_(ctx) {
       rejected.push({ row: rowNo, stm_period: v.record.stm_period, service_type: v.record.service_type, reasons: v.errors });
       return;
     }
-    var key = businessKey_(v.record.stm_period, v.record.service_type);
+    var key = duplicateKey_(v.record);
     if (seen[key]) {
       rejected.push({
         row: rowNo, stm_period: v.record.stm_period, service_type: v.record.service_type,
-        reasons: ['ข้อมูลซ้ำในไฟล์กับแถวที่ ' + seen[key] + ' (งวด STM + ประเภทบริการ)']
+        reasons: ['ข้อมูลซ้ำในไฟล์กับแถวที่ ' + seen[key] + ' (ตรงกันทั้ง 7 ฟิลด์: ' + DUPLICATE_KEY_LABEL + ')']
       });
       return;
     }
@@ -82,7 +83,7 @@ function handleImportData_(ctx) {
     var records = table.rows.map(rowToRecord_);
     var activeByKey = {};
     records.forEach(function (r) {
-      if (r.is_active) activeByKey[businessKey_(r.stm_period, r.service_type)] = r;
+      if (r.is_active) activeByKey[duplicateKey_(r)] = r;
     });
 
     var now = nowIso_();
@@ -90,6 +91,7 @@ function handleImportData_(ctx) {
     var inserts = [];
     var updates = [];
     var deactivations = [];
+    var unchanged = 0;
 
     var newRecord = function (rec) {
       var obj = { record_id: uuid_(), import_batch_id: batchId, created_at: now, updated_at: now, is_active: 'TRUE' };
@@ -110,8 +112,10 @@ function handleImportData_(ctx) {
         } else if (mode === 'append') {
           rejected.push({
             row: item.row, stm_period: item.record.stm_period, service_type: item.record.service_type,
-            reasons: ['มีข้อมูลงวด STM + ประเภทบริการนี้ในระบบแล้ว (ใช้โหมด Upsert หากต้องการอัปเดต)']
+            reasons: ['มีข้อมูลที่ตรงกันทั้ง 7 ฟิลด์ในระบบแล้ว (ใช้โหมด Upsert หากต้องการอัปเดตค่า BR)']
           });
+        } else if (NUMERIC_FIELDS.every(function (f) { return round_(existing[f], 4) === round_(item.record[f], 4); })) {
+          unchanged++;
         } else {
           var merged = {};
           Object.keys(existing).forEach(function (k) { merged[k] = existing[k]; });
@@ -136,6 +140,7 @@ function handleImportData_(ctx) {
       rows_inserted: inserts.length,
       rows_updated: mode === 'replace' ? deactivations.length : updates.length,
       rows_replaced: deactivations.length,
+      rows_unchanged: unchanged,
       rows_rejected: rejected.length,
       rejected: rejected.slice(0, 1000),
       warnings: warnings.slice(0, 500),
@@ -180,7 +185,7 @@ function handleImportData_(ctx) {
       new_value: {
         file_name: fileName, mode: mode, replace_periods: replacePeriods,
         rows_received: summary.rows_received, rows_inserted: summary.rows_inserted,
-        rows_updated: updates.length, rows_replaced: deactivations.length, rows_rejected: summary.rows_rejected
+        rows_updated: updates.length, rows_replaced: deactivations.length, rows_unchanged: unchanged, rows_rejected: summary.rows_rejected
       },
       user_agent: ctx.userAgent
     }];

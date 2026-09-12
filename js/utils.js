@@ -908,9 +908,24 @@ const U = (() => {
     return { record, errors, warnings };
   }
 
-  const businessKey = (stm, type) => {
-    const norm = (s) => String(s || "").replace(/\s+/g, " ").trim().toLowerCase();
-    return `${norm(stm)}||${norm(type || UNSPECIFIED)}`;
+  const DUPLICATE_KEY_LABEL = "งวด STM, เดือน, ปีงบประมาณ, ประเภทบริการ, ครั้ง(บริการ), Adj.RW ที่ชดเชย, ชดเชยก่อนหักเงินเดือน";
+
+  /** คีย์ตรวจข้อมูลซ้ำ 7 ฟิลด์ (ไม่เทียบ BR) — ต้องให้ผลตรงกับ duplicateKey_ ใน gas/Data.gs */
+  const duplicateKey = (rec) => {
+    const text = (s) => String(s || "").replace(/\s+/g, " ").trim().toLowerCase();
+    const num = (v, d) => {
+      const n = toNumber(v);
+      return Number.isNaN(n) ? "NaN" : round(n, d).toFixed(d);
+    };
+    return [
+      text(rec.stm_period),
+      normalizeCode(rec.month_code),
+      normalizeCode(rec.fiscal_year),
+      text(rec.service_type || UNSPECIFIED),
+      num(rec.service_count, 2),
+      num(rec.adj_rw, 4),
+      num(rec.compensation, 2)
+    ].join("||");
   };
 
   return {
@@ -919,6 +934,6 @@ const U = (() => {
     fiscalYearOf, formatDateTime, ROLE_LEVEL, ROLE_LABELS, STATUS_LABELS, roleBadge, statusBadge,
     stateHtml, setBusy, toast, openModal, confirm: confirmDialog, MultiSelect, DataTable, formatByType,
     downloadCSV, downloadXLSX, stamp,
-    UNSPECIFIED, NUMERIC_FIELDS, FIELD_LABELS, toNumber, cleanText, validateRecord, businessKey
+    UNSPECIFIED, NUMERIC_FIELDS, FIELD_LABELS, toNumber, cleanText, validateRecord, duplicateKey, DUPLICATE_KEY_LABEL
   };
 })();

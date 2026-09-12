@@ -1,6 +1,7 @@
 /**
  * Data.gs — อ่านข้อมูล Dashboard (ระดับสรุป) และเพิ่ม / แก้ไข / ลบข้อมูล พร้อม AuditLogs
- * คีย์ธุรกิจของข้อมูล 1 แถว = stm_period + service_type (ไม่สนตัวพิมพ์เล็ก/ใหญ่และช่องว่างซ้ำ)
+ * ข้อมูลซ้ำ = 7 ฟิลด์ตรงกันทั้งหมด: stm_period, month_code, fiscal_year, service_type, service_count, adj_rw, compensation
+ *   (ข้อความไม่สนตัวพิมพ์เล็ก/ใหญ่และช่องว่างซ้ำ, ตัวเลขเทียบหลังปัดทศนิยม) — ไม่นำ BR 2 คอลัมน์มาเทียบ
  */
 
 var NUMERIC_FIELDS = ['br_after_deduction', 'br_k', 'service_count', 'adj_rw', 'compensation'];
@@ -60,9 +61,24 @@ function publicRecord_(rec) {
   return out;
 }
 
-function businessKey_(stmPeriod, serviceType) {
-  var norm = function (s) { return String(s || '').replace(/\s+/g, ' ').trim().toLowerCase(); };
-  return norm(stmPeriod) + '||' + norm(serviceType || UNSPECIFIED_SERVICE_TYPE);
+var DUPLICATE_KEY_LABEL = 'งวด STM, เดือน, ปีงบประมาณ, ประเภทบริการ, ครั้ง(บริการ), Adj.RW ที่ชดเชย, ชดเชยก่อนหักเงินเดือน';
+
+/** คีย์ตรวจข้อมูลซ้ำ 7 ฟิลด์ (ไม่เทียบ BR) — ต้องให้ผลตรงกับ U.duplicateKey ใน js/utils.js */
+function duplicateKey_(rec) {
+  var text = function (s) { return String(s || '').replace(/\s+/g, ' ').trim().toLowerCase(); };
+  var num = function (v, digits) {
+    var n = toNumber_(v);
+    return isNaN(n) ? 'NaN' : round_(n, digits).toFixed(digits);
+  };
+  return [
+    text(rec.stm_period),
+    normalizeCode_(rec.month_code),
+    normalizeCode_(rec.fiscal_year),
+    text(rec.service_type || UNSPECIFIED_SERVICE_TYPE),
+    num(rec.service_count, 2),
+    num(rec.adj_rw, 4),
+    num(rec.compensation, 2)
+  ].join('||');
 }
 
 function markDataChanged_() {
@@ -299,7 +315,7 @@ function handleGetData_(ctx) {
 function findDuplicate_(records, key, excludeId) {
   for (var i = 0; i < records.length; i++) {
     var r = records[i];
-    if (r.is_active && r.record_id !== excludeId && businessKey_(r.stm_period, r.service_type) === key) return r;
+    if (r.is_active && r.record_id !== excludeId && duplicateKey_(r) === key) return r;
   }
   return null;
 }
@@ -315,11 +331,10 @@ function handleAddData_(ctx) {
   return withLock_(function () {
     var table = readTable_('Data');
     var records = table.rows.map(rowToRecord_);
-    var key = businessKey_(v.record.stm_period, v.record.service_type);
-    var dup = findDuplicate_(records, key, null);
+    var dup = findDuplicate_(records, duplicateKey_(v.record), null);
     if (dup) {
-      throw apiError_('DUPLICATE', 'มีข้อมูลงวด STM "' + dup.stm_period + '" ประเภทบริการ "' + dup.service_type + '" อยู่แล้ว',
-        [{ record_id: dup.record_id, message: 'ใช้การแก้ไขข้อมูลเดิมแทน' }]);
+      throw apiError_('DUPLICATE', 'มีข้อมูลที่ตรงกันทั้ง 7 ฟิลด์อยู่แล้ว (งวด STM "' + dup.stm_period + '" ประเภทบริการ "' + dup.service_type + '")',
+        [{ record_id: dup.record_id, message: 'ฟิลด์ที่ใช้ตรวจซ้ำ: ' + DUPLICATE_KEY_LABEL }]);
     }
     var now = nowIso_();
     var rec = {
@@ -370,10 +385,10 @@ function handleUpdateData_(ctx) {
     var v = validateRecordInput_(merged);
     if (v.errors.length) throw apiError_('VALIDATION_ERROR', 'ข้อมูลไม่ถูกต้อง', toDetails_(v.errors));
 
-    var dup = findDuplicate_(records, businessKey_(v.record.stm_period, v.record.service_type), id);
+    var dup = findDuplicate_(records, duplicateKey_(v.record), id);
     if (dup) {
-      throw apiError_('DUPLICATE', 'มีข้อมูลงวด STM "' + dup.stm_period + '" ประเภทบริการ "' + dup.service_type + '" ที่ใช้งานอยู่แล้ว',
-        [{ record_id: dup.record_id }]);
+      throw apiError_('DUPLICATE', 'มีข้อมูลที่ใช้งานอยู่ซึ่งตรงกันทั้ง 7 ฟิลด์แล้ว (งวด STM "' + dup.stm_period + '" ประเภทบริการ "' + dup.service_type + '")',
+        [{ record_id: dup.record_id, message: 'ฟิลด์ที่ใช้ตรวจซ้ำ: ' + DUPLICATE_KEY_LABEL }]);
     }
 
     var changed = restore || EDITABLE_FIELDS.some(function (f) { return String(v.record[f]) !== String(current[f]); });

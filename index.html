@@ -373,7 +373,7 @@
           <div class="card-head">
             <div>
               <h2 class="card-title" id="imp-mode-title"><i class="bi bi-3-circle-fill" aria-hidden="true"></i> เลือกโหมดนำเข้าและยืนยัน</h2>
-              <p class="card-sub">คีย์ตรวจสอบข้อมูลซ้ำ = งวด STM + ประเภทบริการ</p>
+              <p class="card-sub">ข้อมูลซ้ำ = งวด STM, เดือน, ปีงบประมาณ, ประเภทบริการ, ครั้ง(บริการ), Adj.RW ที่ชดเชย และชดเชยก่อนหักเงินเดือน ตรงกันทั้ง 7 ฟิลด์ (ไม่เทียบค่า BR)</p>
             </div>
           </div>
           <fieldset class="radio-cards">
@@ -381,12 +381,12 @@
             <label class="radio-card">
               <input type="radio" name="imp-mode" value="append">
               <span><strong><i class="bi bi-plus-circle-fill" aria-hidden="true"></i> Append</strong>
-                <small>เพิ่มเฉพาะข้อมูลใหม่ แถวที่คีย์ซ้ำกับข้อมูลในระบบจะไม่ถูกนำเข้า และแสดงเป็นข้อผิดพลาด</small></span>
+                <small>เพิ่มเฉพาะข้อมูลใหม่ แถวที่ซ้ำกับข้อมูลในระบบจะไม่ถูกนำเข้า และแสดงเป็นข้อผิดพลาด</small></span>
             </label>
             <label class="radio-card">
               <input type="radio" name="imp-mode" value="upsert" checked>
               <span><strong><i class="bi bi-arrow-repeat" aria-hidden="true"></i> Upsert</strong>
-                <small>เพิ่มข้อมูลใหม่ และอัปเดตข้อมูลที่คีย์ซ้ำด้วยค่าจากไฟล์ (บันทึกค่าเดิมใน Audit Logs)</small></span>
+                <small>เพิ่มข้อมูลใหม่ และอัปเดตค่า BR ของแถวที่ซ้ำด้วยค่าจากไฟล์ (บันทึกค่าเดิมใน Audit Logs) แถวที่ค่าเหมือนเดิมทุกคอลัมน์จะข้าม</small></span>
             </label>
             <label class="radio-card danger">
               <input type="radio" name="imp-mode" value="replace">
