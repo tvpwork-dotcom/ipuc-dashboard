@@ -450,7 +450,14 @@ const Importer = (() => {
         U.toast(res.message, res.data.rows_rejected ? "warning" : "success", 8000);
       }
     } catch (err) {
-      U.toast(API.describeError(err), "danger", 10000);
+      if (err.code === "UNCERTAIN_RESULT" && !dryRun) {
+        Dashboard.invalidate();
+        DataManager.invalidate();
+        AdminPanel.invalidate();
+        U.toast(`${API.describeError(err)} — ตรวจสอบที่เมนู ผู้ดูแลระบบ → Import Logs ก่อนนำเข้าซ้ำ (โหมด Upsert นำเข้าซ้ำได้โดยไม่เกิดข้อมูลซ้ำ)`, "warning", 15000);
+      } else {
+        U.toast(API.describeError(err), "danger", 10000);
+      }
     } finally {
       state.busy = false;
       U.setBusy(btn, false);

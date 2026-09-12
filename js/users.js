@@ -213,10 +213,10 @@ const AdminPanel = (() => {
     try {
       const res = await API.call(apiAction, payload);
       U.toast(res.message, "success");
-      loadUsers();
     } catch (err) {
-      U.toast(API.describeError(err), "danger", 8000);
+      U.toast(API.describeError(err), err.code === "UNCERTAIN_RESULT" ? "warning" : "danger", 10000);
     }
+    loadUsers();
   }
 
   /* ============================== Import logs ============================== */

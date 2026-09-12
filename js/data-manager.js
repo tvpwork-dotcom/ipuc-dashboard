@@ -251,7 +251,8 @@ const DataManager = (() => {
       } catch (err) {
         U.setBusy(saveBtn, false);
         warned = false;
-        const extra = err.code === "CONFLICT" ? html` <button type="button" class="btn btn-outline btn-xs" data-reload>โหลดข้อมูลล่าสุด</button>` : "";
+        const extra = err.code === "CONFLICT" || err.code === "UNCERTAIN_RESULT"
+          ? html` <button type="button" class="btn btn-outline btn-xs" data-reload>โหลดข้อมูลล่าสุด</button>` : "";
         setHtml(alertBox, html`<div class="alert alert-danger"><i class="bi bi-x-octagon-fill" aria-hidden="true"></i><div>${API.describeError(err)}${extra}</div></div>`);
         $("[data-reload]", alertBox)?.addEventListener("click", () => {
           modal.close();
@@ -305,11 +306,11 @@ const DataManager = (() => {
     try {
       const res = await API.call("deleteData", { record_ids: [row.record_id], mode: ok.hard ? "hard" : "soft" });
       U.toast(res.message, "success");
-      Dashboard.invalidate();
-      load();
     } catch (err) {
-      U.toast(API.describeError(err), "danger", 8000);
+      U.toast(API.describeError(err), err.code === "UNCERTAIN_RESULT" ? "warning" : "danger", 10000);
     }
+    Dashboard.invalidate();
+    load();
   }
 
   async function restoreRecord(row) {
@@ -323,11 +324,11 @@ const DataManager = (() => {
     try {
       const res = await API.call("updateData", { record_id: row.record_id, restore: true });
       U.toast(res.message, "success");
-      Dashboard.invalidate();
-      load();
     } catch (err) {
-      U.toast(API.describeError(err), "danger", 8000);
+      U.toast(API.describeError(err), err.code === "UNCERTAIN_RESULT" ? "warning" : "danger", 10000);
     }
+    Dashboard.invalidate();
+    load();
   }
 
   return { init, show, invalidate };
