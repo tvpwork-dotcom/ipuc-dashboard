@@ -47,6 +47,7 @@ GitHub Pages (Frontend: HTML / CSS / Vanilla JS / Chart.js / SheetJS)
 - สมัครใช้งานด้วย Google (กรอกเฉพาะชื่อ-นามสกุล) → รอผู้ดูแลอนุมัติ
 - นำเข้า .xlsx / .xls / .csv: ตรวจ Header → ตัวอย่างข้อมูล → ตรวจชนิดข้อมูล → โหมด Append / Upsert / Replace Batch → ตรวจซ้ำที่ Backend → ImportLogs + AuditLogs
 - จัดการข้อมูล: เพิ่ม / แก้ไข (ป้องกันแก้ทับกัน) / Soft Delete / กู้คืน / ลบถาวร (SUPER_ADMIN เมื่อเปิดใน Settings)
+- ลบข้อมูลหลายรายการ (ADMIN ขึ้นไป): ปุ่ม **ลบข้อมูล** → เลือก “ทั้งหมด” หรือตามเงื่อนไข ปีงบประมาณ · เดือน · งวด STM · ประเภทบริการ (เลือกได้หลายค่า) → ดูจำนวนและค่าชดเชยรวมก่อนลบ → พิมพ์คำยืนยัน · ส่งคำขอครั้งละ 500 รายการ บันทึก `DELETE` ใน AuditLogs ทุกรายการ
 - ผู้ดูแลระบบ: จัดการผู้ใช้, Import Logs, Audit Logs, Settings (เปลี่ยนธีมทั้งระบบได้ 19 ธีม)
 
 **มาตรฐานการออกแบบ** — Official Web Design System v2 (Font Prompt, Semantic color tokens, Bootstrap Icons, Chart.js)

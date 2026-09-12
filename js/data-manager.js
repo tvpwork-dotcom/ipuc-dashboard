@@ -1,6 +1,7 @@
 /**
  * data-manager.js — เพิ่ม / แก้ไข / ลบ (Soft Delete) / กู้คืน ข้อมูลรายงวด STM
- * EDITOR: เพิ่ม แก้ไข · ADMIN: ลบ กู้คืน ดูข้อมูลที่ถูกลบ · SUPER_ADMIN: ลบถาวร (เมื่อเปิดใน Settings)
+ * EDITOR: เพิ่ม แก้ไข · ADMIN: ลบ (รายแถว / ทั้งหมด / ตามปีงบประมาณ เดือน งวด STM ประเภทบริการ) กู้คืน ดูข้อมูลที่ถูกลบ
+ * SUPER_ADMIN: ลบถาวร (เมื่อเปิดใน Settings)
  * การซ่อนปุ่มตามสิทธิ์เป็นเพียง UX — Backend ตรวจสอบสิทธิ์ทุกคำขอ
  */
 const DataManager = (() => {
@@ -56,6 +57,7 @@ const DataManager = (() => {
 
     $("#dm-refresh").addEventListener("click", () => load());
     $("#dm-add").addEventListener("click", () => openForm(null));
+    $("#dm-bulk-delete").addEventListener("click", openBulkDelete);
     $("#dm-year").addEventListener("change", () => {
       fillStmOptions();
       applyFilters();
@@ -71,6 +73,7 @@ const DataManager = (() => {
 
   function show() {
     $("#dm-add").hidden = !Auth.hasRole("EDITOR");
+    $("#dm-bulk-delete").hidden = !Auth.hasRole("ADMIN");
     $("#dm-inactive-wrap").hidden = !Auth.hasRole("ADMIN");
     if (!Auth.hasRole("ADMIN") && state.includeInactive) {
       state.includeInactive = false;
@@ -329,6 +332,182 @@ const DataManager = (() => {
     }
     Dashboard.invalidate();
     load();
+  }
+
+  /* ------------------------------ Bulk delete ------------------------------ */
+  /** จำนวนรายการต่อคำขอ (Backend รับไม่เกิน 500 · ลบถาวรใช้ชุดเล็กเพราะลบทีละแถวในชีต) */
+  const BULK_CHUNK = { soft: 500, hard: 100 };
+  const BULK_FIELDS = [
+    { key: "year", field: "fiscal_year", label: "ปีงบประมาณ", placeholder: "ทุกปีงบประมาณ", filter: "#dm-year" },
+    { key: "month", field: "month_code", label: "เดือน", placeholder: "ทุกเดือน" },
+    { key: "stm", field: "stm_period", label: "งวด STM", placeholder: "ทุกงวด STM", filter: "#dm-stm" },
+    { key: "type", field: "service_type", label: "ประเภทบริการ", placeholder: "ทุกประเภทบริการ", filter: "#dm-type" }
+  ];
+  const uniqueValues = (rows, field) => [...new Set(rows.map((r) => r[field]))].filter((v) => v !== "" && v !== undefined && v !== null);
+
+  async function openBulkDelete() {
+    if (!Auth.hasRole("ADMIN")) {
+      U.toast("ไม่มีสิทธิ์ลบข้อมูล", "danger");
+      return;
+    }
+    if (!state.loaded || state.needsReload) await load();
+    const active = state.records.filter((r) => r.is_active);
+    if (!active.length) {
+      U.toast("ไม่มีข้อมูลที่ใช้งานอยู่ให้ลบ", "info");
+      return;
+    }
+
+    const id = U.uid("bulk");
+    const isSuper = Auth.hasRole("SUPER_ADMIN");
+    const body = html`<div class="form-stack">
+      <fieldset class="bulk-scope">
+        <legend class="form-label">ขอบเขตการลบ</legend>
+        <label class="check"><input type="radio" name="${id}-scope" value="filter" checked> เลือกตามเงื่อนไข</label>
+        <label class="check"><input type="radio" name="${id}-scope" value="all"> ทั้งหมด (${fmt.int(active.length)} รายการที่ใช้งานอยู่)</label>
+      </fieldset>
+      <div class="bulk-grid">
+        ${BULK_FIELDS.map((f) => html`<div class="form-group">
+          <span class="form-label" id="${id}-lbl-${f.key}">${f.label}</span>
+          <div data-bulk-ms="${f.key}"></div>
+        </div>`)}
+      </div>
+      <p class="form-hint">เลือกหลายช่องจะใช้เงื่อนไขร่วมกันทุกช่อง · ในช่องเดียวเลือกได้หลายค่า</p>
+      <div data-bulk-preview aria-live="polite"></div>
+      ${isSuper ? html`<label class="check"><input type="checkbox" data-bulk-hard> ลบถาวรออกจากชีต (ต้องเปิด ALLOW_HARD_DELETE ใน Settings และกู้คืนไม่ได้)</label>` : ""}
+    </div>`;
+    const footer = html`<button type="button" class="btn btn-outline" data-modal-close>ยกเลิก</button>
+      <button type="button" class="btn btn-danger" data-bulk-go disabled><i class="bi bi-trash3" aria-hidden="true"></i> ลบข้อมูล</button>`;
+
+    const modal = U.openModal({ title: "ลบข้อมูลตามเงื่อนไข", body, footer, size: "md" });
+    const goBtn = $("[data-bulk-go]", modal.footer);
+    const preview = $("[data-bulk-preview]", modal.body);
+    const scopeInputs = $$(`input[name="${id}-scope"]`, modal.body);
+    const scope = () => scopeInputs.find((i) => i.checked).value;
+    const ms = {};
+
+    const setOptions = (key, rows) => {
+      const f = BULK_FIELDS.find((x) => x.key === key);
+      let values = uniqueValues(rows, f.field);
+      if (key === "type") values.sort((a, b) => a.localeCompare(b, "th"));
+      else values.sort((a, b) => String(b).localeCompare(String(a)));
+      ms[key].setOptions(values.map((v) => ({
+        value: v,
+        label: key === "year" ? `ปีงบประมาณ ${v}` : key === "month" ? `${U.monthLabelFull(v)} (${v})` : v
+      })));
+    };
+
+    /** ตัวเลือก เดือน / งวด STM / ประเภทบริการ แสดงเฉพาะที่มีในปีงบประมาณที่เลือก */
+    const refreshOptions = () => {
+      const years = ms.year.getValues();
+      const pool = years.length ? active.filter((r) => years.includes(r.fiscal_year)) : active;
+      ["month", "stm", "type"].forEach((k) => setOptions(k, pool));
+    };
+
+    /** null = ยังไม่ได้เลือกเงื่อนไข */
+    const targets = () => {
+      if (scope() === "all") return active;
+      const picked = Object.fromEntries(BULK_FIELDS.map((f) => [f.field, ms[f.key].getValues()]));
+      if (!Object.values(picked).some((v) => v.length)) return null;
+      return active.filter((r) => Object.entries(picked).every(([field, vals]) => !vals.length || vals.includes(String(r[field]))));
+    };
+
+    const update = () => {
+      const all = scope() === "all";
+      Object.values(ms).forEach((m) => m.setDisabled(all));
+      const list = targets();
+      if (list === null || !list.length) {
+        setHtml(preview, html`<div class="alert alert-info"><i class="bi bi-info-circle-fill" aria-hidden="true"></i>
+          <div>${list === null ? "เลือกอย่างน้อย 1 เงื่อนไข หรือเลือก “ทั้งหมด”" : "ไม่พบข้อมูลที่ใช้งานอยู่ตามเงื่อนไขที่เลือก"}</div></div>`);
+        goBtn.disabled = true;
+        setHtml(goBtn, html`<i class="bi bi-trash3" aria-hidden="true"></i> ลบข้อมูล`);
+        return;
+      }
+      const byStm = new Map();
+      list.forEach((r) => byStm.set(r.stm_period, (byStm.get(r.stm_period) || 0) + 1));
+      const stms = [...byStm.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+      const shown = stms.slice(0, 8);
+      const sumCount = list.reduce((s, r) => s + (Number(r.service_count) || 0), 0);
+      const sumComp = list.reduce((s, r) => s + (Number(r.compensation) || 0), 0);
+      setHtml(preview, html`<div class="alert alert-warning"><i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+        <div><strong>จะลบ ${fmt.int(list.length)} รายการ</strong> จาก ${fmt.int(stms.length)} งวด STM
+          · ครั้ง(บริการ) รวม ${fmt.int(sumCount)} · ค่าชดเชยรวม ${fmt.money(sumComp)}
+          <ul class="bulk-list">${shown.map(([stm, n]) => html`<li>${stm} — ${fmt.int(n)} รายการ</li>`)}${stms.length > shown.length ? html`<li>… และอีก ${fmt.int(stms.length - shown.length)} งวด STM</li>` : ""}</ul>
+        </div></div>`);
+      goBtn.disabled = false;
+      setHtml(goBtn, html`<i class="bi bi-trash3" aria-hidden="true"></i> ลบข้อมูล ${fmt.int(list.length)} รายการ`);
+    };
+
+    BULK_FIELDS.forEach((f) => {
+      ms[f.key] = new U.MultiSelect($(`[data-bulk-ms="${f.key}"]`, modal.body), {
+        labelId: `${id}-lbl-${f.key}`,
+        placeholder: f.placeholder,
+        onChange: () => {
+          if (f.key === "year") refreshOptions();
+          update();
+        }
+      });
+    });
+    setOptions("year", active);
+    const pageYear = $("#dm-year").value;
+    if (pageYear) ms.year.setValues([pageYear]);
+    refreshOptions();
+    BULK_FIELDS.filter((f) => f.filter && f.key !== "year").forEach((f) => {
+      const v = $(f.filter).value;
+      if (v) ms[f.key].setValues([v]);
+    });
+    scopeInputs.forEach((i) => i.addEventListener("change", update));
+    update();
+
+    goBtn.addEventListener("click", async () => {
+      const list = targets();
+      if (!list || !list.length) return;
+      const hard = !!$("[data-bulk-hard]", modal.body)?.checked;
+      const all = scope() === "all";
+      const ok = await U.confirm({
+        title: hard ? "ยืนยันการลบถาวร" : "ยืนยันการลบข้อมูล",
+        tone: "danger",
+        message: hard
+          ? `จะลบ ${fmt.int(list.length)} รายการออกจาก Google Sheets ถาวร และไม่สามารถกู้คืนได้`
+          : `จะลบ ${fmt.int(list.length)} รายการแบบ Soft Delete (ซ่อนจาก Dashboard และ ADMIN กู้คืนได้) พร้อมบันทึกใน Audit Logs`,
+        requireText: hard ? "ลบถาวร" : all ? "ลบทั้งหมด" : "ลบข้อมูล",
+        confirmText: hard ? "ลบถาวร" : "ลบข้อมูล"
+      });
+      if (!ok) return;
+      runBulkDelete(list.map((r) => r.record_id), hard ? "hard" : "soft", modal, goBtn);
+    });
+  }
+
+  async function runBulkDelete(ids, mode, modal, goBtn) {
+    const size = BULK_CHUNK[mode];
+    $$("input, button", modal.el).forEach((el) => { el.disabled = true; });
+    let deleted = 0;
+    let missing = 0;
+    let error = null;
+    for (let i = 0; i < ids.length; i += size) {
+      U.setBusy(goBtn, true, `กำลังลบ ${fmt.int(i)} / ${fmt.int(ids.length)}...`);
+      const chunk = ids.slice(i, i + size);
+      try {
+        const res = await API.call("deleteData", { record_ids: chunk, mode });
+        deleted += res.data.deleted || 0;
+        missing += (res.data.not_found || []).length;
+      } catch (err) {
+        if (err.code === "NOT_FOUND") {
+          missing += chunk.length;
+          continue;
+        }
+        error = err;
+        break;
+      }
+    }
+    modal.close();
+    Dashboard.invalidate();
+    load();
+    if (error) {
+      U.toast(`ลบสำเร็จ ${fmt.int(deleted)} รายการ แล้วหยุดเพราะเกิดข้อผิดพลาด: ${API.describeError(error)}`,
+        error.code === "UNCERTAIN_RESULT" ? "warning" : "danger", 12000);
+    } else {
+      U.toast(`ลบข้อมูล ${fmt.int(deleted)} รายการเรียบร้อยแล้ว${missing ? ` (ไม่พบ ${fmt.int(missing)} รายการ อาจถูกลบไปก่อนแล้ว)` : ""}`, "success", 8000);
+    }
   }
 
   return { init, show, invalidate };
